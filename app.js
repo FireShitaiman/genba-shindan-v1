@@ -75,7 +75,7 @@
             AppState.activeQuestions = [...questions].sort(() => 0.5 - Math.random());
         }
 
-        El.quizMeta.classList.toggle('hidden', mode === 'quick');
+        El.stageLabel.classList.toggle('hidden', mode === 'quick');
 
         showOnly(El.quiz);
         showQuestion();
