@@ -200,7 +200,7 @@
         }
 
         updateAffiliateUI(persona);
-        setupShareButtons(persona);
+        setupShareButtons(persona, typeCode);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -415,19 +415,19 @@
     // ========================
     // Share Buttons
     // ========================
-    function setupShareButtons(persona) {
-        const baseUrl = window.location.protocol === 'file:'
-            ? 'https://genba-shindan.example.com'
-            : window.location.href;
-        const url = encodeURIComponent(baseUrl);
+    function setupShareButtons(persona, code) {
+        const ogpBase = window.location.protocol === 'file:'
+            ? `https://genba-check.com/ogp/${code}.html`
+            : `${window.location.origin}/ogp/${code}.html`;
+        const ogpUrl = encodeURIComponent(ogpBase);
 
         El.shareX.onclick = () => {
             const text = encodeURIComponent(`現場特性診断の結果は【${persona.name}】でした！\n${persona.punchline}\n#現場の真実診断 #エンジニア診断`);
-            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'noopener,noreferrer');
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${ogpUrl}`, '_blank', 'noopener,noreferrer');
         };
         El.shareLine.onclick = () => {
             const text = encodeURIComponent(`現場特性診断の結果は【${persona.name}】でした！\n${persona.punchline}\n#現場の真実診断`);
-            window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`, '_blank', 'noopener,noreferrer');
+            window.open(`https://social-plugins.line.me/lineit/share?url=${ogpUrl}&text=${text}`, '_blank', 'noopener,noreferrer');
         };
     }
 
@@ -442,8 +442,26 @@
     // ========================
     // Init (onclick属性を排除し、ここで一元管理)
     // ========================
+    function showResultByCode(code) {
+        const persona = PERSONA_TYPES[code];
+        showOnly(El.result);
+        updateResultUI(persona, code);
+        ['section-score', 'section-compat', 'section-quotes'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        updateAffiliateUI(persona);
+        setupShareButtons(persona, code);
+    }
+
     function init() {
         initElements();
+
+        const typeParam = new URLSearchParams(location.search).get('type');
+        if (typeParam && PERSONA_TYPES[typeParam]) {
+            showResultByCode(typeParam);
+            return;
+        }
+
         El.btnQuick.addEventListener('click', () => startQuiz('quick'));
         El.btnFull.addEventListener('click',  () => startQuiz('full'));
         El.btnNextStage.addEventListener('click', nextStage);

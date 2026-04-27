@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>OGP画像ジェネレーター | 現場特性診断</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="constants.js"></script>
+<style>
+  body { background: #1e293b; color: #f1f5f9; font-family: 'Noto Sans JP', sans-serif; padding: 24px; }
+  h1 { color: #ea580c; margin-bottom: 8px; }
+  .desc { color: #94a3b8; margin-bottom: 32px; font-size: 14px; line-height: 1.8; }
+  .desc ol { padding-left: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 24px; }
+  .card-wrap { background: #0f172a; border-radius: 12px; padding: 16px; }
+  .card-wrap h3 { font-size: 13px; color: #64748b; margin: 0 0 8px; font-weight: 400; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
+  .btn { display: block; width: 100%; margin-top: 10px; padding: 10px; background: #ea580c; color: white;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn:hover { background: #c2410c; }
+  .btn-all { display: block; width: 100%; max-width: 400px; margin: 0 auto 32px;
+    padding: 14px; background: #0f172a; color: #ea580c; border: 2px solid #ea580c;
+    border-radius: 10px; font-size: 16px; font-weight: 900; cursor: pointer; font-family: inherit; }
+  .btn-all:hover { background: #1e293b; }
+  .status { text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 16px; }
+  .loading { text-align: center; padding: 48px; color: #64748b; }
+</style>
+</head>
+<body>
+<h1>OGP画像ジェネレーター</h1>
+<div class="desc">
+  <ol>
+    <li>画像が生成されるまで少し待ちます（DiceBearのロボット画像を取得するため）</li>
+    <li>「全部ダウンロード」またはキャラクターごとのボタンでPNGを保存</li>
+    <li>保存したファイルを <code>ogp/images/</code> フォルダに入れる</li>
+  </ol>
+</div>
+<button class="btn-all" id="btn-all" disabled>読み込み中...</button>
+<div class="status" id="status"></div>
+<div class="grid" id="grid">
+  <div class="loading">画像を生成中です。しばらくお待ちください...</div>
+</div>
+
+<script>
+const W = 1200, H = 630;
+const DOMAIN = 'genba-check.com';
+
+const canvasMap = {};
+let loadedCount = 0;
+const total = Object.keys(PERSONA_TYPES).length;
+
+function updateStatus() {
+  document.getElementById('status').textContent = `${loadedCount} / ${total} 枚完了`;
+  if (loadedCount === total) {
+    const btn = document.getElementById('btn-all');
+    btn.disabled = false;
+    btn.textContent = '全部ダウンロード（16枚）';
+  }
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+  const chars = [...text];
+  let line = '';
+  let lineCount = 0;
+  for (const ch of chars) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, y + lineCount * lineHeight);
+      line = ch;
+      lineCount++;
+      if (lineCount >= maxLines) { ctx.fillText('…', x, y + lineCount * lineHeight); return; }
+    } else {
+      line = test;
+    }
+  }
+  if (line) ctx.fillText(line, x, y + lineCount * lineHeight);
+}
+
+function drawCard(ctx, persona, code, robotImg) {
+  // Background
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle orange radial glow (left)
+  const glow = ctx.createRadialGradient(280, 315, 0, 280, 315, 380);
+  glow.addColorStop(0, 'rgba(234,88,12,0.18)');
+  glow.addColorStop(1, 'rgba(234,88,12,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Orange left bar
+  ctx.fillStyle = '#ea580c';
+  ctx.fillRect(0, 0, 10, H);
+
+  // Robot image (left section)
+  if (robotImg) {
+    ctx.drawImage(robotImg, 40, H / 2 - 170, 300, 300);
+  }
+
+  // ── Right section text ──
+  const tx = 390;
+
+  // Site label
+  ctx.fillStyle = '#ea580c';
+  ctx.font = '700 28px "Noto Sans JP", sans-serif';
+  ctx.fillText('現場特性診断', tx, 110);
+
+  // Divider under label
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(tx, 128);
+  ctx.lineTo(1150, 128);
+  ctx.stroke();
+
+  // Character name
+  const nameLen = persona.name.length;
+  const namePx = nameLen > 12 ? 44 : nameLen > 9 ? 52 : 60;
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = `900 ${namePx}px "Noto Sans JP", sans-serif`;
+  ctx.fillText(persona.name, tx, 210);
+
+  // Nickname
+  ctx.fillStyle = '#fb923c';
+  ctx.font = '700 34px "Noto Sans JP", sans-serif';
+  ctx.fillText(`「${persona.nickname}」`, tx, 278);
+
+  // Punchline
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '400 28px "Noto Sans JP", sans-serif';
+  wrapText(ctx, persona.punchline, tx, 360, 750, 46);
+
+  // Bottom bar
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, H - 70, W, 70);
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 70);
+  ctx.lineTo(W, H - 70);
+  ctx.stroke();
+
+  // Domain
+  ctx.fillStyle = '#475569';
+  ctx.font = '400 24px "Noto Sans JP", sans-serif';
+  ctx.fillText(DOMAIN, tx, H - 26);
+
+  // Code badge
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath();
+  ctx.roundRect(W - 100, H - 60, 80, 36, 6);
+  ctx.fill();
+  ctx.fillStyle = '#64748b';
+  ctx.font = '700 20px "Noto Sans JP", sans-serif';
+  ctx.fillText(code, W - 88, H - 35);
+}
+
+function renderAll() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  Object.entries(PERSONA_TYPES).forEach(([code, persona]) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'card-wrap';
+    wrap.innerHTML = `<h3>${code}: ${persona.name}</h3>`;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    canvasMap[code] = canvas;
+    wrap.appendChild(canvas);
+
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.id = `btn-${code}`;
+    btn.textContent = `${code}.png をダウンロード`;
+    btn.disabled = true;
+    btn.onclick = () => downloadPng(code);
+    wrap.appendChild(btn);
+    grid.appendChild(wrap);
+
+    // Load robot image
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = `https://api.dicebear.com/7.x/bottts/png?seed=${code}&size=300&backgroundColor=transparent`;
+
+    const drawAndFinish = (loadedImg) => {
+      const ctx = canvas.getContext('2d');
+      drawCard(ctx, persona, code, loadedImg);
+      btn.disabled = false;
+      loadedCount++;
+      updateStatus();
+    };
+
+    img.onload = () => drawAndFinish(img);
+    img.onerror = () => drawAndFinish(null); // fallback: draw without robot
+  });
+}
+
+function downloadPng(code) {
+  const canvas = canvasMap[code];
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = `${code}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+async function downloadAll() {
+  const btn = document.getElementById('btn-all');
+  btn.disabled = true;
+  const codes = Object.keys(PERSONA_TYPES);
+  for (let i = 0; i < codes.length; i++) {
+    btn.textContent = `ダウンロード中... (${i + 1}/${codes.length})`;
+    downloadPng(codes[i]);
+    await new Promise(r => setTimeout(r, 400));
+  }
+  btn.disabled = false;
+  btn.textContent = '全部ダウンロード（16枚）';
+}
+
+document.getElementById('btn-all').addEventListener('click', downloadAll);
+
+document.fonts.ready.then(renderAll);
+</script>
+</body>
+</html>
