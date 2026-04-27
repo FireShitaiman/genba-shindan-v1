@@ -8,7 +8,6 @@
         currentQuestionIndex: 0,
         answers: [],
         activeQuestions: [],
-        chartInstance: null,
         quizMode: 'full',
     };
 
@@ -39,21 +38,10 @@
             resultDescription:   'result-description',
             resultNickname:      'result-nickname',
             resultAdvice:        'result-advice',
-            resultQuotes:        'result-quotes',
-            marketValueBar:      'market-value-bar',
-            marketValuePercent:  'market-value-percent',
-            marketValueStatus:   'market-value-status',
-            marketValueMessage:  'market-value-message',
-            survivalBar:         'survival-bar',
-            survivalPercent:     'survival-percent',
-            survivalStatus:      'survival-status',
-            survivalMessage:     'survival-message',
-            bestMatch:           'best-match',
-            worstMatch:          'worst-match',
             affiliateContainer:  'affiliate-container',
             shareX:              'share-x',
             shareLine:           'share-line',
-            resultChart:         'resultChart',
+            quizMeta:            'quiz-meta',
             btnQuick:            'btn-quick',
             btnFull:             'btn-full',
             btnNextStage:        'btn-next-stage',
@@ -82,15 +70,12 @@
         AppState.answers = [];
 
         if (mode === 'quick') {
-            const cats = ['val', 'act', 'pri', 'mnd'];
-            AppState.activeQuestions = cats.flatMap(cat =>
-                questions.filter(q => q.category === cat)
-                         .sort(() => 0.5 - Math.random())
-                         .slice(0, 3)
-            );
+            AppState.activeQuestions = questions.filter(q => q.hook);
         } else {
             AppState.activeQuestions = [...questions].sort(() => 0.5 - Math.random());
         }
+
+        El.quizMeta.classList.toggle('hidden', mode === 'quick');
 
         showOnly(El.quiz);
         showQuestion();
@@ -145,7 +130,7 @@
         AppState.answers.push(score);
         if (AppState.currentQuestionIndex < AppState.activeQuestions.length - 1) {
             AppState.currentQuestionIndex++;
-            if (AppState.currentQuestionIndex % 10 === 0) {
+            if (AppState.quizMode !== 'quick' && AppState.currentQuestionIndex % 10 === 0) {
                 showTransition();
             } else {
                 showQuestion();
@@ -203,13 +188,19 @@
 
         showOnly(El.result);
         updateResultUI(persona, typeCode);
-        updateMarketValueUI(scores.val);
-        updateSurvivalUI(scores.mnd);
-        updateQuotesUI(persona.quotes);
-        updateMatchUI(persona);
+
+        const isFull = AppState.quizMode === 'full';
+        ['section-score', 'section-compat', 'section-quotes'].forEach(id => {
+            document.getElementById(id).classList.toggle('hidden', !isFull);
+        });
+        if (isFull) {
+            updateScoreBreakdownUI(scores);
+            updateCompatibilityUI(persona);
+            updateQuotesUI(persona);
+        }
+
         updateAffiliateUI(persona);
         setupShareButtons(persona);
-        renderChart(scores);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -227,131 +218,67 @@
     }
 
     // ========================
-    // Tiered Status Bars (DRY: 共通関数で市場価値・生存率を処理)
-    // ========================
-    const MARKET_VALUE_TIERS = [
-        { min: 80, status: 'Appraisal: High Value',  cls: 'text-purple-400', msg: '現場を支える希少な技術者。政治に惑わされず、その腕一本でどこでも生きていける「本物」の価値があります。' },
-        { min: 50, status: 'Appraisal: Specialized', cls: 'text-blue-400',   msg: '安定した技術と調整能力を兼ね備えています。今の組織に留まらず、より上位のステージへ進むポテンシャルを秘めています。' },
-        { min: -1, status: 'Appraisal: Generalist',  cls: 'text-slate-400',  msg: '技術よりも組織内調整に特化しています。汎用性は高いですが、特定の技術領域では足元を見られるリスクがあります。' },
-    ];
-
-    const SURVIVAL_TIERS = [
-        { min: 80, status: 'Condition: Stable',        cls: 'text-emerald-500',           msg: '現場の毒素への高い耐性を維持しています。しかし、その強さは「感覚の麻痺」によるものかもしれません。' },
-        { min: 50, status: 'Condition: Warning',       cls: 'text-orange-500',            msg: '精神的な摩耗が無視できないレベルです。まだ踏み止まれますが、ふとした瞬間にダムが決壊する予兆があります。' },
-        { min: 25, status: 'Condition: Critical',      cls: 'text-red-400',               msg: '過労死ラインの住人です。心が完全に摩耗しきる前に、新しい環境（酸素）を吸いに行く準備を始めてください。' },
-        { min: -1, status: 'Condition: Dead or Alive', cls: 'text-red-600 animate-pulse', msg: '生存確率は極めて低いです。このまま今の現場に居続けることは、キャリアだけでなく人生そのものの毀損に直結します。今すぐこのページ下のリンクから脱出先を探すべきです。' },
-    ];
-
-    function applyTier(tiers, score, barEl, percentEl, statusEl, messageEl) {
-        const tier = tiers.find(t => score > t.min);
-        percentEl.textContent = `${score}%`;
-        barEl.style.width = `${score}%`;
-        statusEl.textContent = tier.status;
-        statusEl.className = `text-xs font-black italic uppercase tracking-widest leading-none ${tier.cls}`;
-        messageEl.textContent = tier.msg;
-    }
-
-    function updateMarketValueUI(valScore) {
-        applyTier(MARKET_VALUE_TIERS, valScore,
-            El.marketValueBar, El.marketValuePercent, El.marketValueStatus, El.marketValueMessage);
-    }
-
-    function updateSurvivalUI(survivalRate) {
-        applyTier(SURVIVAL_TIERS, survivalRate,
-            El.survivalBar, El.survivalPercent, El.survivalStatus, El.survivalMessage);
-    }
-
-    // ========================
-    // Quotes (textContent で XSS 排除)
-    // ========================
-    function updateQuotesUI(quotes) {
-        El.resultQuotes.textContent = '';
-        quotes.forEach(quote => {
-            const div = document.createElement('div');
-            div.className = 'bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-slate-300 italic text-sm';
-            div.textContent = quote;
-            El.resultQuotes.appendChild(div);
-        });
-    }
-
-    // ========================
-    // Match Cards (純粋関数でビューを生成)
-    // ========================
-    function buildMatchCard(containerEl, persona, matchKey, role) {
-        const matched = PERSONA_TYPES[matchKey];
-        const isGood = role === 'best';
-        const accentCls = isGood ? 'text-emerald-500' : 'text-red-500';
-
-        containerEl.textContent = '';
-
-        const labelEl = document.createElement('p');
-        labelEl.className = `${accentCls} font-bold text-xs mb-4 uppercase tracking-widest`;
-        labelEl.textContent = isGood ? 'Best Partner / 相棒' : 'Worst Match / 天敵';
-
-        const img = document.createElement('img');
-        img.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(matchKey)}&backgroundColor=transparent`;
-        img.alt = `${matched.name}のキャラクター`;
-        img.className = 'w-16 h-16 mx-auto mb-2 drop-shadow-md';
-
-        const nameEl = document.createElement('h4');
-        nameEl.className = 'text-white font-bold text-sm';
-        nameEl.textContent = matched.name;
-
-        const reasonEl = document.createElement('p');
-        reasonEl.className = 'text-[10px] text-slate-400 mt-2 leading-tight';
-        reasonEl.textContent = isGood ? persona.bestReason : persona.worstReason;
-
-        containerEl.append(labelEl, img, nameEl, reasonEl);
-    }
-
-    function updateMatchUI(persona) {
-        buildMatchCard(El.bestMatch,  persona, persona.bestMatch,  'best');
-        buildMatchCard(El.worstMatch, persona, persona.worstMatch, 'worst');
-    }
-
-    // ========================
-    // Affiliate Cards (設定をデータで管理)
+    // Affiliate Cards
     // ========================
     const AFFILIATE_CONFIG = [
         {
-            accentCls:    'text-orange-500',
-            borderHover:  'hover:border-orange-500/50',
-            titleHoverCls:'group-hover:text-orange-500',
-            labelText:    'Sponsored',
-            getTitle:     persona => `【現場脱出】${persona.name}に最適な非公開求人`,
-            bodyText:     '今のあなたの市場価値なら、年収+100万のチャンス。最短30日のスピード内定実績あり。',
-            url:          'https://example.com/dummy-affiliate-1',
+            badge:       'PR',
+            accentCls:   'text-orange-400',
+            borderCls:   'border-orange-500/25',
+            hoverBorder: 'hover:border-orange-500/60',
+            btnCls:      'bg-orange-600 hover:bg-orange-500',
+            company:     'ランスタッド株式会社',
+            getJobTitle: persona => `製造・技術職エージェント【${persona.name}タイプ歓迎】`,
+            catchCopy:   '現場経験を正当に評価する職場へ。非公開求人を含む3,000件以上を無料紹介。',
+            location:    '全国対応（愛知・大阪・関東ほか）',
+            salary:      '年収 400〜800万',
+            type:        '正社員・契約社員',
+            tags:        ['非公開求人あり', '転職サポート無料', '最短即日紹介'],
+            url:         'https://example.com/dummy-affiliate-1',
         },
         {
-            accentCls:    'text-blue-500',
-            borderHover:  'hover:border-blue-500/50',
-            titleHoverCls:'group-hover:text-blue-500',
-            labelText:    'AD / 転職サポート',
-            getTitle:     () => '「現場の政治」に疲れたエンジニア専用エージェント',
-            bodyText:     '技術魂を正当に評価する、ホワイトな環境への転身をフルサポート。',
-            url:          'https://example.com/dummy-affiliate-2',
+            badge:       'AD',
+            accentCls:   'text-blue-400',
+            borderCls:   'border-blue-500/25',
+            hoverBorder: 'hover:border-blue-500/60',
+            btnCls:      'bg-blue-600 hover:bg-blue-500',
+            company:     'メイテックネクスト',
+            getJobTitle: () => '施工管理・生産技術 専門求人サイト',
+            catchCopy:   '工場・建設系に特化した転職サービス。資格取得支援ありのホワイト企業を厳選掲載。',
+            location:    '東海・関西・関東 多数',
+            salary:      '年収 350〜700万',
+            type:        '正社員',
+            tags:        ['施工管理技士 歓迎', '完全週休2日', '資格取得支援'],
+            url:         'https://example.com/dummy-affiliate-2',
         },
     ];
 
     function buildAffiliateCard(cfg, persona) {
         const div = document.createElement('div');
-        div.className = `bg-white/5 p-4 rounded-xl border border-white/10 ${cfg.borderHover} transition-colors cursor-pointer group`;
+        div.className = `relative bg-slate-800/60 border ${cfg.borderCls} ${cfg.hoverBorder} rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer group`;
         div.setAttribute('role', 'link');
         div.setAttribute('tabindex', '0');
 
-        const label = document.createElement('p');
-        label.className = `text-[10px] ${cfg.accentCls} font-bold mb-1 uppercase tracking-tighter`;
-        label.textContent = cfg.labelText;
-
-        const title = document.createElement('h4');
-        title.className = `text-md font-bold text-white ${cfg.titleHoverCls} transition-colors`;
-        title.textContent = cfg.getTitle(persona);
-
-        const body = document.createElement('p');
-        body.className = 'text-xs text-slate-400 mt-1';
-        body.textContent = cfg.bodyText;
-
-        div.append(label, title, body);
+        div.innerHTML = `
+            <div class="p-5">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded font-bold tracking-widest uppercase">${cfg.badge}</span>
+                    <span class="${cfg.accentCls} text-xs font-bold truncate ml-2">${cfg.company}</span>
+                </div>
+                <h4 class="text-sm font-black text-white group-hover:${cfg.accentCls} transition-colors leading-snug mb-2">${cfg.getJobTitle(persona)}</h4>
+                <p class="text-xs text-slate-400 leading-relaxed mb-4">${cfg.catchCopy}</p>
+                <div class="flex flex-wrap gap-1.5 mb-4">
+                    ${cfg.tags.map(t => `<span class="text-[11px] bg-slate-700/80 text-slate-300 px-2 py-0.5 rounded-full">${t}</span>`).join('')}
+                </div>
+                <div class="flex items-end justify-between pt-3 border-t border-slate-700/50">
+                    <div class="text-[11px] text-slate-500 leading-relaxed">
+                        <div>📍 ${cfg.location}</div>
+                        <div>💴 ${cfg.salary}　${cfg.type}</div>
+                    </div>
+                    <button class="${cfg.btnCls} text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap ml-3 flex-shrink-0">詳細を見る →</button>
+                </div>
+            </div>
+        `;
 
         const open = () => window.open(cfg.url, '_blank', 'noopener,noreferrer');
         div.addEventListener('click', open);
@@ -362,6 +289,127 @@
     function updateAffiliateUI(persona) {
         El.affiliateContainer.textContent = '';
         AFFILIATE_CONFIG.forEach(cfg => El.affiliateContainer.appendChild(buildAffiliateCard(cfg, persona)));
+    }
+
+    // ========================
+    // Score Breakdown
+    // ========================
+    const SCORE_AXES = [
+        { key: 'val', labelHigh: 'やりがい重視',   labelLow: '条件・待遇重視', desc: '仕事への向き合い方', clsHigh: 'from-orange-600 to-orange-400', clsLow: 'from-blue-600 to-blue-400' },
+        { key: 'act', labelHigh: '行動派',          labelLow: '慎重派',         desc: '物事の進め方',       clsHigh: 'from-emerald-600 to-emerald-400', clsLow: 'from-purple-600 to-purple-400' },
+        { key: 'pri', labelHigh: '品質優先',        labelLow: 'スピード優先',   desc: '仕事のこだわり',    clsHigh: 'from-cyan-600 to-cyan-400', clsLow: 'from-rose-600 to-rose-400' },
+        { key: 'mnd', labelHigh: '現実主義',        labelLow: '理想主義',       desc: '物の見方',          clsHigh: 'from-slate-500 to-slate-300', clsLow: 'from-yellow-500 to-yellow-300' },
+    ];
+
+    function updateScoreBreakdownUI(scores) {
+        const container = document.getElementById('score-breakdown');
+        container.textContent = '';
+        SCORE_AXES.forEach(axis => {
+            const score   = scores[axis.key];
+            const isHigh  = score >= 50;
+            const primary = isHigh ? axis.labelHigh : axis.labelLow;
+            const secondary = isHigh ? axis.labelLow : axis.labelHigh;
+            const barWidth  = isHigh ? score : (100 - score);
+            const barCls    = isHigh ? axis.clsHigh : axis.clsLow;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'space-y-1.5';
+
+            const row = document.createElement('div');
+            row.className = 'flex justify-between items-baseline';
+
+            const primaryEl = document.createElement('span');
+            primaryEl.className = 'text-xs font-black text-white';
+            primaryEl.textContent = primary;
+
+            const secondaryEl = document.createElement('span');
+            secondaryEl.className = 'text-[10px] text-slate-600';
+            secondaryEl.textContent = `← ${secondary}`;
+
+            row.appendChild(primaryEl);
+            row.appendChild(secondaryEl);
+
+            const track = document.createElement('div');
+            track.className = 'w-full bg-slate-800 h-2 rounded-full overflow-hidden';
+
+            const fill = document.createElement('div');
+            fill.className = `bg-gradient-to-r ${barCls} h-full rounded-full transition-all duration-700`;
+            fill.style.width = `${barWidth}%`;
+
+            track.appendChild(fill);
+            wrapper.appendChild(row);
+            wrapper.appendChild(track);
+            container.appendChild(wrapper);
+        });
+    }
+
+    // ========================
+    // Compatibility
+    // ========================
+    function updateCompatibilityUI(persona) {
+        const container = document.getElementById('compatibility-section');
+        container.textContent = '';
+        const configs = [
+            {
+                code:      persona.bestMatch,
+                reason:    persona.bestReason,
+                label:     '最高の相棒',
+                icon:      '✦',
+                borderCls: 'border-emerald-500/30 bg-emerald-500/5',
+                accentCls: 'text-emerald-400',
+            },
+            {
+                code:      persona.worstMatch,
+                reason:    persona.worstReason,
+                label:     '最悪の相手',
+                icon:      '✕',
+                borderCls: 'border-red-500/30 bg-red-500/5',
+                accentCls: 'text-red-400',
+            },
+        ];
+        configs.forEach(cfg => {
+            const target = PERSONA_TYPES[cfg.code];
+            if (!target) return;
+
+            const card = document.createElement('div');
+            card.className = `border ${cfg.borderCls} rounded-xl p-4`;
+
+            const labelEl = document.createElement('p');
+            labelEl.className = `text-[10px] font-bold uppercase tracking-widest ${cfg.accentCls} mb-1`;
+            labelEl.textContent = cfg.label;
+
+            const nameEl = document.createElement('p');
+            nameEl.className = 'text-sm font-black text-white mb-2';
+            nameEl.textContent = `${cfg.icon} ${target.name}`;
+
+            const reasonEl = document.createElement('p');
+            reasonEl.className = 'text-xs text-slate-400 leading-relaxed';
+            reasonEl.textContent = cfg.reason;
+
+            card.appendChild(labelEl);
+            card.appendChild(nameEl);
+            card.appendChild(reasonEl);
+            container.appendChild(card);
+        });
+    }
+
+    // ========================
+    // Quotes
+    // ========================
+    function updateQuotesUI(persona) {
+        const container = document.getElementById('quotes-section');
+        container.textContent = '';
+        persona.quotes.forEach(quote => {
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800/50 border border-slate-700/50 rounded-xl p-4';
+
+            const text = document.createElement('p');
+            text.className = 'text-slate-300 text-sm italic leading-relaxed';
+            text.textContent = quote;
+
+            div.appendChild(text);
+            container.appendChild(div);
+        });
     }
 
     // ========================
@@ -384,56 +432,6 @@
     }
 
     // ========================
-    // Chart
-    // ========================
-    function renderChart(scores) {
-        if (AppState.chartInstance) AppState.chartInstance.destroy();
-        AppState.chartInstance = new Chart(El.resultChart.getContext('2d'), {
-            type: 'radar',
-            data: {
-                labels: ['技術魂 (Eng)', '現場判断 (Auto)', '品質矜持 (Qual)', '不屈の心 (Res)'],
-                datasets: [
-                    {
-                        label: 'あなたの特性',
-                        data: [scores.val, scores.act, scores.pri, scores.mnd],
-                        fill: true,
-                        backgroundColor: 'rgba(234, 88, 12, 0.2)',
-                        borderColor: 'rgb(234, 88, 12)',
-                        pointBackgroundColor: 'rgb(234, 88, 12)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(234, 88, 12)',
-                    },
-                    {
-                        label: '一般的な現場人',
-                        data: TYPICAL_GENBA_SCORES,
-                        fill: true,
-                        backgroundColor: 'rgba(71, 85, 105, 0.2)',
-                        borderColor: 'rgba(71, 85, 105, 0.8)',
-                        pointBackgroundColor: 'rgba(71, 85, 105, 1)',
-                        pointBorderColor: '#fff',
-                        borderDash: [5, 5],
-                    },
-                ],
-            },
-            options: {
-                scales: {
-                    r: {
-                        angleLines:  { color: 'rgba(255, 255, 255, 0.1)' },
-                        grid:        { color: 'rgba(255, 255, 255, 0.1)' },
-                        pointLabels: { color: '#94a3b8', font: { size: 12, weight: 'bold' } },
-                        ticks:       { display: false, stepSize: 20 },
-                        suggestedMin: 0,
-                        suggestedMax: 100,
-                    },
-                },
-                plugins: {
-                    legend: { labels: { color: '#f8fafc', font: { size: 12 } } },
-                },
-            },
-        });
-    }
-
     // ========================
     // Disclaimer
     // ========================

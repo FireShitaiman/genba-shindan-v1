@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>現場の真実診断 | Engineering or Politics?</title>
+    <title>仕事にやりがいはあるか。| 工場で働くあなたの現状診断</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,11 +19,10 @@
             現場・技術職 専門鑑定
         </div>
         <h1 class="text-4xl md:text-7xl font-black mb-6 leading-tight tracking-tight">
-            君の仕事は、<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 italic pr-2">エンジニアリング</span>か？<br><span class="text-slate-500">政治</span>か？
+            仕事にやりがいはあるか。
         </h1>
         <p class="text-lg md:text-xl mb-10 text-slate-400 leading-relaxed max-w-2xl">
-            現場の油と汗、終わらない夜勤、そして不可解な社内政治。<br>
-            君の「市場価値」と「生存リスク」を精密鑑定する。
+            工場で働くあなたの現状を診断する。
         </p>
         <div class="flex flex-col sm:flex-row gap-6">
             <button id="btn-quick" class="bg-blue-700 hover:bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold transition-all border border-blue-600 shadow-[0_0_25px_rgba(29,78,216,0.2)] transform hover:-translate-y-1">
@@ -34,14 +32,15 @@
                 詳細版 (30問/5分)
             </button>
         </div>
-        <p class="mt-8 text-slate-500 text-sm">※現場の「あるある」と「リアル」を凝縮したエンターテインメント鑑定です。心の余裕を持ってお楽しみください。</p>
+        <p class="mt-5 text-slate-500 text-xs">詳細版では <span class="text-slate-300 font-bold">4軸スコア内訳・相性診断・現場の声</span> など、より詳しい解説が表示されます。</p>
+        <p class="mt-3 text-slate-600 text-xs">※現場の「あるある」と「リアル」を凝縮したエンターテインメント鑑定です。心の余裕を持ってお楽しみください。</p>
     </section>
 
     <!-- Quiz Section -->
     <section id="quiz" class="hidden min-h-screen p-4 md:p-10 flex items-center justify-center">
         <div class="max-w-3xl w-full bg-slate-900 border border-slate-800 p-8 md:p-12 rounded-3xl shadow-2xl">
             <!-- Header -->
-            <div class="flex justify-between items-end mb-8">
+            <div id="quiz-meta" class="flex justify-between items-end mb-8">
                 <div>
                     <span id="stage-label" class="text-orange-500 font-bold tracking-widest text-xs uppercase">Stage 1: 現場のリアル</span>
                     <h3 id="step-counter" class="text-2xl font-black text-slate-500">01<span class="text-sm font-normal">/30</span></h3>
@@ -110,101 +109,60 @@
                 </div>
 
                 <!-- Result Content -->
-                <div class="p-8 md:p-12">
-                    <!-- Nickname Section -->
-                    <div class="mb-12 text-center bg-slate-800/20 p-8 rounded-[2rem] border-2 border-slate-800 border-dashed relative overflow-hidden">
-                        <p class="text-xs text-slate-500 font-bold mb-3 uppercase tracking-widest">あなたが現場で密かに呼ばれているあだ名</p>
-                        <h4 id="result-nickname" class="text-4xl md:text-6xl font-black text-orange-500 italic drop-shadow-sm"></h4>
+                <div class="p-8 md:p-12 max-w-2xl mx-auto">
+                    <!-- Nickname -->
+                    <div class="mb-8 text-center bg-slate-800/20 p-6 rounded-2xl border border-slate-800 border-dashed">
+                        <p class="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">あなたが現場で密かに呼ばれているあだ名</p>
+                        <h4 id="result-nickname" class="text-4xl md:text-5xl font-black text-orange-500 italic"></h4>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
-                        <!-- Left: Analysis -->
-                        <div>
-                            <h3 class="text-xl font-bold mb-6 flex items-center">
-                                <span class="w-2 h-6 bg-orange-500 mr-3 rounded-full"></span>現状分析
-                            </h3>
-                            <p id="result-description" class="text-slate-400 leading-relaxed mb-6"></p>
-
-                            <!-- Radar Chart Container -->
-                            <div class="bg-slate-800/30 p-4 rounded-3xl border border-slate-800 aspect-square flex items-center justify-center">
-                                <canvas id="resultChart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Right: Action -->
-                        <div>
-                            <h3 class="text-xl font-bold mb-6 flex items-center">
-                                <span class="w-2 h-6 bg-blue-500 mr-3 rounded-full"></span>推奨される脱出先
-                            </h3>
-                            <p id="result-advice" class="text-slate-200 font-bold leading-relaxed mb-6 p-4 bg-blue-600/10 border-l-4 border-blue-500 rounded-r-xl"></p>
-
-                            <!-- Market Value Section -->
-                            <div class="mb-4 bg-slate-800/50 p-6 rounded-2xl border border-slate-700 relative overflow-hidden">
-                                <div class="flex justify-between items-end mb-4">
-                                    <span id="market-value-status" class="text-xs font-black italic uppercase tracking-widest leading-none">Market Appraisal</span>
-                                    <div class="text-right">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase leading-none mb-1">Estimated Market Value</p>
-                                        <span id="market-value-percent" class="text-4xl font-black text-white italic leading-none">0%</span>
-                                    </div>
-                                </div>
-                                <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 p-[2px]">
-                                    <div id="market-value-bar" class="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500 transition-all duration-1000 ease-out rounded-full"></div>
-                                </div>
-                                <p id="market-value-message" class="text-[11px] text-slate-400 mt-4 leading-relaxed italic"></p>
-                            </div>
-
-                            <!-- Survival Rate Section -->
-                            <div class="mb-8 bg-slate-800/50 p-6 rounded-2xl border border-slate-700 relative overflow-hidden">
-                                <div class="flex justify-between items-end mb-4">
-                                    <span id="survival-status" class="text-xs font-black italic uppercase tracking-widest leading-none">Status Check</span>
-                                    <div class="text-right">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase leading-none mb-1">Survival Probability</p>
-                                        <span id="survival-percent" class="text-4xl font-black text-white italic leading-none">0%</span>
-                                    </div>
-                                </div>
-                                <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 p-[2px]">
-                                    <div id="survival-bar" class="h-full bg-gradient-to-r from-red-600 via-orange-500 to-emerald-500 transition-all duration-1000 ease-out rounded-full"></div>
-                                </div>
-                                <p id="survival-message" class="text-[11px] text-slate-400 mt-4 leading-relaxed italic"></p>
-                            </div>
-
-                            <div id="affiliate-container" class="space-y-4">
-                                <!-- Inserted by JS -->
-                            </div>
-
-                            <div class="mt-8 flex flex-col sm:flex-row gap-3">
-                                <button id="share-x" class="flex-1 bg-slate-100 text-slate-900 py-3 rounded-xl font-black flex items-center justify-center hover:bg-white transition-all transform hover:scale-[1.02]">
-                                    <span class="mr-2 text-lg">𝕏</span> で晒す
-                                </button>
-                                <button id="share-line" class="flex-1 bg-[#06C755] text-white py-3 rounded-xl font-black flex items-center justify-center hover:opacity-90 transition-all transform hover:scale-[1.02]">
-                                    <span class="mr-2 font-bold text-lg">LINE</span> 送る
-                                </button>
-                            </div>
-                        </div>
+                    <!-- Description -->
+                    <div class="mb-6">
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">現状分析</p>
+                        <p id="result-description" class="text-slate-300 leading-relaxed"></p>
                     </div>
 
-                    <!-- Quotes Section -->
-                    <div class="mb-12">
-                        <h3 class="text-xl font-bold mb-6 flex items-center">
-                            <span class="w-2 h-6 bg-orange-500 mr-3 rounded-full"></span>あなたが現場でよく言われる言葉
-                        </h3>
-                        <div id="result-quotes" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                    <!-- Score Breakdown -->
+                    <div id="section-score" class="mb-8">
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">4軸スコア内訳</p>
+                        <div id="score-breakdown" class="space-y-4"></div>
                     </div>
 
-                    <!-- Compatibility Section -->
-                    <div class="border-t border-slate-800 pt-10 mb-12">
-                        <h3 class="text-xl font-bold mb-8 text-center text-slate-300 italic underline decoration-orange-500 decoration-4 underline-offset-8">現場の相性診断</h3>
-                        <div class="grid grid-cols-2 gap-4 md:gap-8">
-                            <div id="best-match" class="bg-emerald-500/5 border border-emerald-500/20 p-6 rounded-3xl text-center">
-                                <!-- Inserted by JS -->
-                            </div>
-                            <div id="worst-match" class="bg-red-500/5 border border-red-500/20 p-6 rounded-3xl text-center">
-                                <!-- Inserted by JS -->
-                            </div>
-                        </div>
+                    <!-- Advice -->
+                    <div class="mb-8">
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">推奨される脱出先</p>
+                        <p id="result-advice" class="text-slate-200 font-bold leading-relaxed p-4 bg-blue-600/10 border-l-4 border-blue-500 rounded-r-xl"></p>
                     </div>
 
-                    <div class="text-center border-t border-slate-800 pt-8">
+                    <!-- Compatibility -->
+                    <div id="section-compat" class="mb-8">
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">相性診断</p>
+                        <div id="compatibility-section" class="grid grid-cols-2 gap-3"></div>
+                    </div>
+
+                    <!-- Quotes -->
+                    <div id="section-quotes" class="mb-8">
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">現場でこう言われてる</p>
+                        <div id="quotes-section" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Affiliate -->
+                    <div class="mb-8">
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">あなたの診断結果に合う求人</p>
+                        <div id="affiliate-container" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Share -->
+                    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+                        <button id="share-x" class="flex-1 bg-slate-100 text-slate-900 py-3 rounded-xl font-black flex items-center justify-center hover:bg-white transition-all transform hover:scale-[1.02]">
+                            <span class="mr-2 text-lg">𝕏</span> で晒す
+                        </button>
+                        <button id="share-line" class="flex-1 bg-[#06C755] text-white py-3 rounded-xl font-black flex items-center justify-center hover:opacity-90 transition-all transform hover:scale-[1.02]">
+                            <span class="mr-2 font-bold text-lg">LINE</span> 送る
+                        </button>
+                    </div>
+
+                    <div class="text-center border-t border-slate-800 pt-6">
                         <button id="btn-restart" class="text-slate-500 hover:text-slate-300 transition-colors text-sm underline">もう一度最初から診断する</button>
                     </div>
                 </div>
@@ -231,9 +189,9 @@
     <footer class="p-10 text-center text-slate-600 text-xs">
         <div class="flex justify-center gap-6 mb-4">
             <button id="link-disclaimer" class="hover:text-slate-400 underline bg-transparent border-0 cursor-pointer">免責事項</button>
-            <a href="https://forms.gle/dummy-link" target="_blank" rel="noopener noreferrer" class="hover:text-slate-400 underline">お問い合わせ(Googleフォーム)</a>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdApMAXN1aohEtIOul2K-TyheQraieFhDSWxEC-xMhKDcQ6cg/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" class="hover:text-slate-400 underline">お問い合わせ(Googleフォーム)</a>
         </div>
-        <p>© 2026 現場の真実診断. 本サービスは独自アルゴリズムによる診断コンテンツです。MBTI®は Myers-Briggs Type Indicator の登録商標であり、本サービスとは無関係です。</p>
+        <p>© 2026 仕事にやりがいはあるか. 本サービスは独自アルゴリズムによる診断コンテンツです。MBTI®は Myers-Briggs Type Indicator の登録商標であり、本サービスとは無関係です。</p>
         <p class="mt-2">
             Charts: <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-400">Chart.js</a> (MIT) &nbsp;·&nbsp;
             Avatars: <a href="https://www.dicebear.com/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-400">DiceBear</a> (MIT)

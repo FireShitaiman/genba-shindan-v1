@@ -1,0 +1,8 @@
+# Claudeがスキャン不要なファイル
+
+# デバッグ用の全タイプ確認ファイル（本番コードではない）
+debug_all_types.html
+
+# Git内部・エディタ設定
+.git/
+.vscode/
