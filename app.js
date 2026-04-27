@@ -190,11 +190,12 @@
         updateResultUI(persona, typeCode);
 
         const isFull = AppState.quizMode === 'full';
-        ['section-score', 'section-compat', 'section-quotes'].forEach(id => {
+        ['section-score', 'section-details', 'section-compat', 'section-quotes'].forEach(id => {
             document.getElementById(id).classList.toggle('hidden', !isFull);
         });
         if (isFull) {
             updateScoreBreakdownUI(scores);
+            updateDetailsUI(persona);
             updateCompatibilityUI(persona);
             updateQuotesUI(persona);
         }
@@ -341,6 +342,84 @@
             wrapper.appendChild(track);
             container.appendChild(wrapper);
         });
+    }
+
+    // ========================
+    // Details (深層プロフィール)
+    // ========================
+    function updateDetailsUI(persona) {
+        const container = document.getElementById('details-section');
+        container.textContent = '';
+        const d = persona.details;
+        if (!d) return;
+
+        const sections = [
+            {
+                title: 'エンジン解剖',
+                borderCls: 'border-orange-500/30 bg-orange-500/5',
+                titleCls: 'text-orange-400',
+                rows: [
+                    { label: '動力源', text: d.engine.why },
+                    { label: '停止ワード', text: d.engine.stop },
+                    { label: '隠れた切り札', text: d.engine.power },
+                ],
+            },
+            {
+                title: 'ストレス反応',
+                borderCls: 'border-red-500/30 bg-red-500/5',
+                titleCls: 'text-red-400',
+                rows: [
+                    { label: 'トリガー', text: d.stress.trigger },
+                    { label: '発症行動', text: d.stress.behavior },
+                ],
+            },
+            {
+                title: '現場での立ち位置',
+                borderCls: 'border-blue-500/30 bg-blue-500/5',
+                titleCls: 'text-blue-400',
+                rows: [
+                    { label: '役割', text: d.position.role },
+                    { label: '他者の目', text: d.position.view },
+                ],
+            },
+        ];
+
+        sections.forEach(sec => {
+            const card = document.createElement('div');
+            card.className = `border ${sec.borderCls} rounded-xl p-4 space-y-3`;
+
+            const titleEl = document.createElement('p');
+            titleEl.className = `text-[10px] font-bold uppercase tracking-widest ${sec.titleCls} mb-2`;
+            titleEl.textContent = sec.title;
+            card.appendChild(titleEl);
+
+            sec.rows.forEach(row => {
+                const rowEl = document.createElement('div');
+                const labelEl = document.createElement('span');
+                labelEl.className = 'text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5';
+                labelEl.textContent = row.label;
+                const textEl = document.createElement('p');
+                textEl.className = 'text-xs text-slate-300 leading-relaxed';
+                textEl.textContent = row.text;
+                rowEl.appendChild(labelEl);
+                rowEl.appendChild(textEl);
+                card.appendChild(rowEl);
+            });
+
+            container.appendChild(card);
+        });
+
+        const memeCard = document.createElement('div');
+        memeCard.className = 'bg-slate-800/50 border border-slate-700/50 rounded-xl p-4';
+        const memeLabel = document.createElement('p');
+        memeLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2';
+        memeLabel.textContent = 'あるあるシーン';
+        const memeText = document.createElement('p');
+        memeText.className = 'text-slate-300 text-sm italic leading-relaxed';
+        memeText.textContent = d.meme;
+        memeCard.appendChild(memeLabel);
+        memeCard.appendChild(memeText);
+        container.appendChild(memeCard);
     }
 
     // ========================
