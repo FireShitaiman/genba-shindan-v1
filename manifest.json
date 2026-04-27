@@ -1,0 +1,17 @@
+{
+  "name": "現場の真実診断 | Engineering or Politics?",
+  "short_name": "現場診断",
+  "description": "工場で働くあなたの現状を診断する。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <rect x="0" y="256" width="512" height="256" rx="0" fill="#0f172a"/>
+  <rect x="0" y="416" width="512" height="96" rx="0" fill="#0f172a"/>
+  <rect x="416" y="256" width="96" height="256" rx="96" fill="#0f172a"/>
+  <rect x="0" y="256" width="96" height="256" rx="0" fill="#0f172a"/>
+  <!-- Clean rounded square bg -->
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <!-- E/P diagonal split line -->
+  <line x1="256" y1="80" x2="256" y2="432" stroke="#ea580c" stroke-width="6" stroke-opacity="0.4"/>
+  <!-- E — left side -->
+  <text x="128" y="320" font-family="Georgia, serif" font-size="220" font-weight="900" fill="#f8fafc" text-anchor="middle" dominant-baseline="middle" letter-spacing="-4">E</text>
+  <!-- P — right side -->
+  <text x="384" y="320" font-family="Georgia, serif" font-size="220" font-weight="900" fill="#ea580c" text-anchor="middle" dominant-baseline="middle" letter-spacing="-4">P</text>
+  <!-- bottom label -->
+  <text x="256" y="462" font-family="Georgia, sans-serif" font-size="42" fill="#475569" text-anchor="middle" letter-spacing="6">GENBA</text>
+</svg>
