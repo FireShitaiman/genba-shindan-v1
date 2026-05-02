@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>確認用プレビュー | 全16タイプ × 2モード</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        @keyframes floating {
+            0%   { transform: translateY(0px) rotate(0deg); }
+            50%  { transform: translateY(-10px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .floating { animation: floating 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-['Noto_Sans_JP'] selection:bg-orange-500 selection:text-white">
+
+<!-- Sticky nav -->
+<nav class="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 z-50 px-4 py-3">
+    <div class="max-w-7xl mx-auto">
+        <p class="text-[10px] text-orange-500 font-bold uppercase tracking-widest mb-2">確認用プレビュー ／ 全16タイプ × 簡易版・詳細版</p>
+        <div id="nav-links" class="flex flex-wrap gap-1.5"></div>
+    </div>
+</nav>
+
+<div id="preview-container" class="max-w-5xl mx-auto px-4 py-10 space-y-24"></div>
+
+<script src="constants.js?v=4"></script>
+<script>
+// ── Shared data (mirrors app.js) ──────────────────────────────────────────
+const SCORE_AXES = [
+    { key: 'val', labelHigh: 'やりがい重視',  labelLow: '条件・待遇重視', clsHigh: 'from-orange-600 to-orange-400', clsLow: 'from-blue-600 to-blue-400' },
+    { key: 'act', labelHigh: '行動派',         labelLow: '慎重派',         clsHigh: 'from-emerald-600 to-emerald-400', clsLow: 'from-purple-600 to-purple-400' },
+    { key: 'pri', labelHigh: '品質優先',       labelLow: 'スピード優先',   clsHigh: 'from-cyan-600 to-cyan-400',    clsLow: 'from-rose-600 to-rose-400' },
+    { key: 'mnd', labelHigh: '現実主義',       labelLow: '理想主義',       clsHigh: 'from-slate-500 to-slate-300',  clsLow: 'from-yellow-500 to-yellow-300' },
+];
+
+const PAIN_LABELS = [
+    { key: 'loss',   icon: '💴', label: 'なぜ給料が上がらないのか' },
+    { key: 'boss',   icon: '👁',  label: '上司の本音' },
+    { key: 'future', icon: '⏳', label: 'このまま5年後' },
+];
+
+const AFFILIATE_CONFIG = [
+    {
+        badge: 'PR', accentCls: 'text-orange-400', borderCls: 'border-orange-500/25', btnCls: 'bg-orange-600 hover:bg-orange-500',
+        company: 'ランスタッド株式会社',
+        getJobTitle: p => `製造・技術職エージェント【${p.name}タイプ歓迎】`,
+        catchCopy: '現場経験を正当に評価する職場へ。非公開求人を含む3,000件以上を無料紹介。',
+        location: '全国対応（愛知・大阪・関東ほか）', salary: '年収 400〜800万', type: '正社員・契約社員',
+        tags: ['非公開求人あり', '転職サポート無料', '最短即日紹介'],
+    },
+    {
+        badge: 'AD', accentCls: 'text-blue-400', borderCls: 'border-blue-500/25', btnCls: 'bg-blue-600 hover:bg-blue-500',
+        company: 'メイテックネクスト',
+        getJobTitle: () => '施工管理・生産技術 専門求人サイト',
+        catchCopy: '工場・建設系に特化した転職サービス。資格取得支援ありのホワイト企業を厳選掲載。',
+        location: '東海・関西・関東 多数', salary: '年収 350〜700万', type: '正社員',
+        tags: ['施工管理技士 歓迎', '完全週休2日', '資格取得支援'],
+    },
+];
+
+// Derive representative axis scores from 4-char type code
+function scoresFromCode(code) {
+    return {
+        val: code[0] === 'E' ? 75 : 25,
+        act: code[1] === 'A' ? 75 : 25,
+        pri: code[2] === 'Q' ? 75 : 25,
+        mnd: code[3] === 'R' ? 75 : 25,
+    };
+}
+
+// ── Builder helpers (mirror app.js DOM functions exactly) ─────────────────
+
+function buildScoreBreakdown(scores) {
+    const wrap = document.createElement('div');
+    wrap.className = 'space-y-4';
+    SCORE_AXES.forEach(axis => {
+        const score  = scores[axis.key];
+        const isHigh = score >= 50;
+        const prim   = isHigh ? axis.labelHigh : axis.labelLow;
+        const sec    = isHigh ? axis.labelLow  : axis.labelHigh;
+        const barW   = isHigh ? score : (100 - score);
+        const barCls = isHigh ? axis.clsHigh  : axis.clsLow;
+
+        const item = document.createElement('div');
+        item.className = 'space-y-1.5';
+
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-baseline';
+        const lbl = document.createElement('span');
+        lbl.className = 'text-xs font-black text-white';
+        lbl.textContent = prim;
+        const sub = document.createElement('span');
+        sub.className = 'text-[10px] text-slate-600';
+        sub.textContent = `← ${sec}`;
+        row.appendChild(lbl); row.appendChild(sub);
+
+        const track = document.createElement('div');
+        track.className = 'w-full bg-slate-800 h-2 rounded-full overflow-hidden';
+        const fill = document.createElement('div');
+        fill.className = `bg-gradient-to-r ${barCls} h-full rounded-full`;
+        fill.style.width = `${barW}%`;
+        track.appendChild(fill);
+
+        item.appendChild(row); item.appendChild(track);
+        wrap.appendChild(item);
+    });
+    return wrap;
+}
+
+function buildDetails(persona) {
+    const container = document.createElement('div');
+    container.className = 'space-y-3';
+    const d = persona.details;
+    if (!d) return container;
+
+    const secs = [
+        { title: 'エンジン解剖',     border: 'border-orange-500/30 bg-orange-500/5', tc: 'text-orange-400',
+          rows: [{ l: '動力源', t: d.engine.why }, { l: '停止ワード', t: d.engine.stop }, { l: '隠れた切り札', t: d.engine.power }] },
+        { title: 'ストレス反応',     border: 'border-red-500/30 bg-red-500/5',       tc: 'text-red-400',
+          rows: [{ l: 'トリガー', t: d.stress.trigger }, { l: '発症行動', t: d.stress.behavior }] },
+        { title: '現場での立ち位置', border: 'border-slate-600/40 bg-slate-700/10',   tc: 'text-slate-400',
+          rows: [{ l: '役割', t: d.position.role }, { l: '他者の目', t: d.position.view }] },
+    ];
+
+    secs.forEach(sec => {
+        const card = document.createElement('div');
+        card.className = `border ${sec.border} rounded-xl p-4 space-y-3`;
+        const titleEl = document.createElement('p');
+        titleEl.className = `text-[10px] font-bold uppercase tracking-widest ${sec.tc} mb-2`;
+        titleEl.textContent = sec.title;
+        card.appendChild(titleEl);
+        sec.rows.forEach(row => {
+            const rowEl = document.createElement('div');
+            const labelEl = document.createElement('span');
+            labelEl.className = 'text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5';
+            labelEl.textContent = row.l;
+            const textEl = document.createElement('p');
+            textEl.className = 'text-xs text-slate-300 leading-relaxed';
+            textEl.textContent = row.t;
+            rowEl.appendChild(labelEl); rowEl.appendChild(textEl);
+            card.appendChild(rowEl);
+        });
+        container.appendChild(card);
+    });
+
+    const memeCard = document.createElement('div');
+    memeCard.className = 'bg-slate-800/50 border border-slate-700/50 rounded-xl p-4';
+    const memeL = document.createElement('p');
+    memeL.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2';
+    memeL.textContent = 'あるあるシーン';
+    const memeT = document.createElement('p');
+    memeT.className = 'text-slate-300 text-sm italic leading-relaxed';
+    memeT.textContent = d.meme;
+    memeCard.appendChild(memeL); memeCard.appendChild(memeT);
+    container.appendChild(memeCard);
+
+    return container;
+}
+
+function buildCompatibility(persona) {
+    const container = document.createElement('div');
+    container.className = 'grid grid-cols-2 gap-3';
+    [
+        { code: persona.bestMatch,  reason: persona.bestReason,  label: '最高の相棒', icon: '✦', border: 'border-emerald-500/30 bg-emerald-500/5', tc: 'text-emerald-400' },
+        { code: persona.worstMatch, reason: persona.worstReason, label: '最悪の相手', icon: '✕', border: 'border-red-500/30 bg-red-500/5',         tc: 'text-red-400' },
+    ].forEach(cfg => {
+        const target = PERSONA_TYPES[cfg.code];
+        if (!target) return;
+        const card = document.createElement('div');
+        card.className = `border ${cfg.border} rounded-xl p-4`;
+        const lbl = document.createElement('p');
+        lbl.className = `text-[10px] font-bold uppercase tracking-widest ${cfg.tc} mb-1`;
+        lbl.textContent = cfg.label;
+        const name = document.createElement('p');
+        name.className = 'text-sm font-black text-white mb-2';
+        name.textContent = `${cfg.icon} ${target.name}`;
+        const reason = document.createElement('p');
+        reason.className = 'text-xs text-slate-400 leading-relaxed';
+        reason.textContent = cfg.reason;
+        card.appendChild(lbl); card.appendChild(name); card.appendChild(reason);
+        container.appendChild(card);
+    });
+    return container;
+}
+
+function buildQuotes(persona) {
+    const container = document.createElement('div');
+    container.className = 'space-y-2';
+    persona.quotes.forEach(q => {
+        const div = document.createElement('div');
+        div.className = 'bg-slate-800/50 border border-slate-700/50 rounded-xl p-4';
+        const p = document.createElement('p');
+        p.className = 'text-slate-300 text-sm italic leading-relaxed';
+        p.textContent = q;
+        div.appendChild(p);
+        container.appendChild(div);
+    });
+    return container;
+}
+
+function buildExtended(persona) {
+    const ext = persona.extended;
+    if (!ext) return null;
+    const section = document.createElement('div');
+    section.className = 'mb-8 space-y-6';
+
+    const fields = [
+        { key: 'intro',      label: 'あなたとは何者か',            lblCls: 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-3', txtCls: 'text-slate-300 text-sm leading-relaxed' },
+        { key: 'relations',  label: '人間関係の実態',              lblCls: 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-3', txtCls: 'text-slate-300 text-sm leading-relaxed' },
+        { key: 'desire',     label: 'あなたが本当に求めているもの', lblCls: 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-3', txtCls: 'text-slate-300 text-sm leading-relaxed' },
+        { key: 'secret',     label: '本当は、',                    lblCls: 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-2', txtCls: 'text-slate-100 font-bold text-base leading-relaxed border-l-4 border-orange-500 pl-4' },
+        { key: 'realReason', label: 'あなたが転職しない本当の理由', lblCls: 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-2', txtCls: 'text-slate-300 text-sm leading-relaxed italic' },
+    ];
+
+    fields.forEach(f => {
+        if (!ext[f.key]) return;
+        const wrap = document.createElement('div');
+        const lbl = document.createElement('p');
+        lbl.className = f.lblCls;
+        lbl.textContent = f.label;
+        const txt = document.createElement('p');
+        txt.className = f.txtCls;
+        txt.textContent = ext[f.key];
+        wrap.appendChild(lbl); wrap.appendChild(txt);
+        section.appendChild(wrap);
+    });
+    return section;
+}
+
+function buildPain(persona) {
+    const outer = document.createElement('div');
+    outer.className = 'mb-8 bg-red-950/20 border border-red-900/30 rounded-2xl p-5';
+    const lbl = document.createElement('p');
+    lbl.className = 'text-xs text-red-400/80 font-bold uppercase tracking-widest mb-4';
+    lbl.textContent = 'あなたが損してる、3つの理由';
+    outer.appendChild(lbl);
+    const inner = document.createElement('div');
+    inner.className = 'space-y-3';
+    if (persona.details?.pain) {
+        PAIN_LABELS.forEach(({ key, icon, label }) => {
+            const text = persona.details.pain[key];
+            if (!text) return;
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800/60 border border-red-900/30 rounded-2xl p-5';
+            const p1 = document.createElement('p');
+            p1.className = 'text-xs text-red-400 font-bold uppercase tracking-widest mb-2';
+            p1.textContent = `${icon} ${label}`;
+            const p2 = document.createElement('p');
+            p2.className = 'text-slate-300 text-sm leading-relaxed';
+            p2.textContent = text;
+            div.appendChild(p1); div.appendChild(p2);
+            inner.appendChild(div);
+        });
+    }
+    outer.appendChild(inner);
+    return outer;
+}
+
+function buildAffiliate(persona) {
+    const outer = document.createElement('div');
+    outer.className = 'mb-8';
+    const lbl = document.createElement('p');
+    lbl.className = 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-3';
+    lbl.textContent = 'あなたの診断結果に合う求人';
+    outer.appendChild(lbl);
+    const inner = document.createElement('div');
+    inner.className = 'space-y-3';
+    AFFILIATE_CONFIG.forEach(cfg => {
+        const div = document.createElement('div');
+        div.className = `relative bg-slate-800/60 border ${cfg.borderCls} rounded-2xl overflow-hidden`;
+        div.innerHTML = `
+<div class="p-5">
+    <div class="flex justify-between items-center mb-3">
+        <span class="text-[10px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded font-bold tracking-widest uppercase">${cfg.badge}</span>
+        <span class="${cfg.accentCls} text-xs font-bold truncate ml-2">${cfg.company}</span>
+    </div>
+    <h4 class="text-sm font-black text-white leading-snug mb-2">${cfg.getJobTitle(persona)}</h4>
+    <p class="text-xs text-slate-400 leading-relaxed mb-4">${cfg.catchCopy}</p>
+    <div class="flex flex-wrap gap-1.5 mb-4">
+        ${cfg.tags.map(t => `<span class="text-[11px] bg-slate-700/80 text-slate-300 px-2 py-0.5 rounded-full">${t}</span>`).join('')}
+    </div>
+    <div class="flex items-end justify-between pt-3 border-t border-slate-700/50">
+        <div class="text-[11px] text-slate-500 leading-relaxed">
+            <div>📍 ${cfg.location}</div>
+            <div>💴 ${cfg.salary}　${cfg.type}</div>
+        </div>
+        <button class="${cfg.btnCls} text-white text-xs font-bold px-4 py-2 rounded-lg whitespace-nowrap ml-3 flex-shrink-0">詳細を見る →</button>
+    </div>
+</div>`;
+        inner.appendChild(div);
+    });
+    outer.appendChild(inner);
+    return outer;
+}
+
+// ── Main card renderer ────────────────────────────────────────────────────
+
+function renderCard(code, persona, mode) {
+    const isFull = (mode === 'full');
+    const scores = scoresFromCode(code);
+
+    const outerWrap = document.createElement('div');
+
+    // Mode badge
+    const modeBadge = document.createElement('div');
+    modeBadge.className = `mb-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+        isFull
+            ? 'bg-orange-600/20 text-orange-400 border border-orange-500/30'
+            : 'bg-blue-700/20 text-blue-400 border border-blue-500/30'
+    }`;
+    modeBadge.textContent = isFull ? '詳細版 (30問 / 約5分)' : '簡易版 (12問 / 約1分)';
+    outerWrap.appendChild(modeBadge);
+
+    // Card shell
+    const card = document.createElement('div');
+    card.className = 'bg-slate-900 border-2 border-orange-500/50 rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]';
+
+    // ── Header ──
+    const header = document.createElement('div');
+    header.className = 'bg-gradient-to-br from-orange-600 to-red-700 p-10 text-center relative overflow-hidden';
+
+    // Grid pattern bg
+    const svgWrap = document.createElement('div');
+    svgWrap.className = 'absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none';
+    const patId = `g-${code}-${mode}`;
+    svgWrap.innerHTML = `<svg width="100%" height="100%"><pattern id="${patId}" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1"/></pattern><rect width="100%" height="100%" fill="url(#${patId})" /></svg>`;
+    header.appendChild(svgWrap);
+
+    const diagLabel = document.createElement('p');
+    diagLabel.className = 'text-orange-200 font-bold tracking-[0.3em] uppercase text-xs mb-4 relative';
+    diagLabel.textContent = 'Diagnostic Result';
+    header.appendChild(diagLabel);
+
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'relative inline-block mb-6';
+    const img = document.createElement('img');
+    img.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(code)}&backgroundColor=transparent&primaryColor=ea580c`;
+    img.alt = `${persona.name}のキャラクター`;
+    img.className = 'w-32 h-32 md:w-48 md:h-48 drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] floating';
+    imgWrap.appendChild(img);
+    header.appendChild(imgWrap);
+
+    const nameEl = document.createElement('h2');
+    nameEl.className = 'text-4xl md:text-6xl font-black text-white mb-2 italic relative';
+    nameEl.textContent = persona.name;
+    header.appendChild(nameEl);
+
+    const punchlineEl = document.createElement('p');
+    punchlineEl.className = 'text-orange-100 text-lg font-bold relative';
+    punchlineEl.textContent = persona.punchline;
+    header.appendChild(punchlineEl);
+
+    card.appendChild(header);
+
+    // ── Content ──
+    const content = document.createElement('div');
+    content.className = 'p-8 md:p-12 max-w-2xl mx-auto';
+
+    // Nickname
+    const nickBox = document.createElement('div');
+    nickBox.className = 'mb-8 text-center bg-slate-800/20 p-6 rounded-2xl border border-slate-800 border-dashed';
+    const nickLbl = document.createElement('p');
+    nickLbl.className = 'text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest';
+    nickLbl.textContent = 'あなたが現場で密かに呼ばれているあだ名';
+    const nickVal = document.createElement('h4');
+    nickVal.className = 'text-4xl md:text-5xl font-black text-orange-500 italic';
+    nickVal.textContent = `「${persona.nickname}」`;
+    nickBox.appendChild(nickLbl); nickBox.appendChild(nickVal);
+    content.appendChild(nickBox);
+
+    // Description
+    const descBox = document.createElement('div');
+    descBox.className = 'mb-6';
+    const descLbl = document.createElement('p');
+    descLbl.className = 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-3';
+    descLbl.textContent = '現状分析';
+    const descTxt = document.createElement('p');
+    descTxt.className = 'text-slate-300 leading-relaxed';
+    descTxt.textContent = persona.description;
+    descBox.appendChild(descLbl); descBox.appendChild(descTxt);
+    content.appendChild(descBox);
+
+    // Score Breakdown (full only)
+    if (isFull) {
+        const scoreBox = document.createElement('div');
+        scoreBox.className = 'mb-8';
+        const scoreLbl = document.createElement('p');
+        scoreLbl.className = 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-4';
+        scoreLbl.textContent = '4軸スコア内訳';
+        scoreBox.appendChild(scoreLbl);
+        scoreBox.appendChild(buildScoreBreakdown(scores));
+        content.appendChild(scoreBox);
+    }
+
+    // Details / 深層プロフィール (full only)
+    if (isFull) {
+        const detailsBox = document.createElement('div');
+        detailsBox.className = 'mb-8';
+        const detailsLbl = document.createElement('p');
+        detailsLbl.className = 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-4';
+        detailsLbl.textContent = '深層プロフィール';
+        detailsBox.appendChild(detailsLbl);
+        detailsBox.appendChild(buildDetails(persona));
+        content.appendChild(detailsBox);
+    }
+
+    // Compatibility (full only)
+    if (isFull) {
+        const compatBox = document.createElement('div');
+        compatBox.className = 'mb-8';
+        const compatLbl = document.createElement('p');
+        compatLbl.className = 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-4';
+        compatLbl.textContent = '相性診断';
+        compatBox.appendChild(compatLbl);
+        compatBox.appendChild(buildCompatibility(persona));
+        content.appendChild(compatBox);
+    }
+
+    // Quotes (full only)
+    if (isFull) {
+        const quotesBox = document.createElement('div');
+        quotesBox.className = 'mb-8';
+        const quotesLbl = document.createElement('p');
+        quotesLbl.className = 'text-xs text-slate-500 font-bold uppercase tracking-widest mb-3';
+        quotesLbl.textContent = '現場でこう言われてる';
+        quotesBox.appendChild(quotesLbl);
+        quotesBox.appendChild(buildQuotes(persona));
+        content.appendChild(quotesBox);
+    }
+
+    // 動線① 本当はこう思っていませんか
+    function makeDivider(label, textColor, lineColor) {
+        const d = document.createElement('div');
+        d.className = 'flex items-center gap-3 my-10';
+        d.innerHTML = `<div class="h-px flex-1 ${lineColor}"></div><span class="text-xs font-bold tracking-widest whitespace-nowrap ${textColor}">${label}</span><div class="h-px flex-1 ${lineColor}"></div>`;
+        return d;
+    }
+    content.appendChild(makeDivider('本当はこう思っていませんか', 'text-slate-400', 'bg-slate-700'));
+
+    // Extended Profile (both modes)
+    const extSection = buildExtended(persona);
+    if (extSection) content.appendChild(extSection);
+
+    // 動線② でも周りからはこう見えています
+    content.appendChild(makeDivider('でも周りからはこう見えています', 'text-red-400', 'bg-red-900/40'));
+
+    // Pain Points (both modes)
+    content.appendChild(buildPain(persona));
+
+    // 動線③ だから、環境を変えてみませんか
+    content.appendChild(makeDivider('だから、環境を変えてみませんか', 'text-emerald-400', 'bg-emerald-900/40'));
+
+    // Advice (moved here)
+    const advBox = document.createElement('div');
+    advBox.className = 'mb-8';
+    const advLbl = document.createElement('p');
+    advLbl.className = 'text-xs text-emerald-500/80 font-bold uppercase tracking-widest mb-3';
+    advLbl.textContent = '推奨される次のステージ';
+    const advTxt = document.createElement('p');
+    advTxt.className = 'text-slate-200 font-bold leading-relaxed p-4 bg-emerald-600/10 border-l-4 border-emerald-500 rounded-r-xl';
+    advTxt.textContent = persona.advice;
+    advBox.appendChild(advLbl); advBox.appendChild(advTxt);
+    content.appendChild(advBox);
+
+    // Affiliate
+    content.appendChild(buildAffiliate(persona));
+
+    // Share buttons (static / decorative)
+    const shareBtns = document.createElement('div');
+    shareBtns.className = 'flex flex-col sm:flex-row gap-3 mb-8';
+    shareBtns.innerHTML = `
+        <button class="flex-1 bg-slate-100 text-slate-900 py-3 rounded-xl font-black flex items-center justify-center hover:bg-white transition-all">
+            <span class="mr-2 text-lg">𝕏</span> に投稿する
+        </button>
+        <button class="flex-1 bg-[#06C755] text-white py-3 rounded-xl font-black flex items-center justify-center hover:opacity-90 transition-all">
+            <span class="mr-2 font-bold text-lg">LINE</span> に投稿する
+        </button>
+    `;
+    content.appendChild(shareBtns);
+
+    const restartBox = document.createElement('div');
+    restartBox.className = 'text-center border-t border-slate-800 pt-6';
+    const restartBtn = document.createElement('span');
+    restartBtn.className = 'text-slate-500 text-sm underline';
+    restartBtn.textContent = 'もう一度最初から診断する';
+    restartBox.appendChild(restartBtn);
+    content.appendChild(restartBox);
+
+    card.appendChild(content);
+    outerWrap.appendChild(card);
+    return outerWrap;
+}
+
+// ── Build page ────────────────────────────────────────────────────────────
+
+const TYPE_CODES = [
+    'EAQR','EAQV','EADR','EADV',
+    'ECQR','ECQV','ECDR','ECDV',
+    'PAQR','PAQV','PADR','PADV',
+    'PCQR','PCQV','PCDR','PCDV',
+];
+
+const container  = document.getElementById('preview-container');
+const navLinks   = document.getElementById('nav-links');
+
+TYPE_CODES.forEach((code, idx) => {
+    const persona = PERSONA_TYPES[code];
+    if (!persona) return;
+
+    // Nav link
+    const a = document.createElement('a');
+    a.href = `#type-${code}`;
+    a.className = 'text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors whitespace-nowrap';
+    a.textContent = `${code}`;
+    a.title = persona.name;
+    navLinks.appendChild(a);
+
+    // Section
+    const section = document.createElement('section');
+    section.id = `type-${code}`;
+    section.className = 'scroll-mt-24';
+
+    // Section header
+    const secHeader = document.createElement('div');
+    secHeader.className = 'mb-8 border-b border-slate-800 pb-5';
+    const secTitle = document.createElement('div');
+    secTitle.className = 'flex items-baseline gap-3 flex-wrap mb-2';
+    const numEl = document.createElement('span');
+    numEl.className = 'text-3xl font-black text-orange-500/50 italic';
+    numEl.textContent = String(idx + 1).padStart(2, '0');
+    const nameEl = document.createElement('span');
+    nameEl.className = 'text-2xl font-black text-white';
+    nameEl.textContent = persona.name;
+    const codeEl = document.createElement('span');
+    codeEl.className = 'text-slate-600 font-bold text-sm font-mono';
+    codeEl.textContent = `[${code}]`;
+    secTitle.appendChild(numEl); secTitle.appendChild(nameEl); secTitle.appendChild(codeEl);
+    const secSub = document.createElement('p');
+    secSub.className = 'text-slate-500 text-sm';
+    secSub.textContent = persona.punchline;
+    secHeader.appendChild(secTitle); secHeader.appendChild(secSub);
+    section.appendChild(secHeader);
+
+    // Quick mode card
+    const quickWrap = document.createElement('div');
+    quickWrap.className = 'mb-10';
+    quickWrap.appendChild(renderCard(code, persona, 'quick'));
+    section.appendChild(quickWrap);
+
+    // Divider
+    const divider = document.createElement('div');
+    divider.className = 'flex items-center gap-4 my-8';
+    divider.innerHTML = `
+        <div class="flex-1 h-px bg-slate-800"></div>
+        <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest">詳細版では以下が追加表示</span>
+        <div class="flex-1 h-px bg-slate-800"></div>
+    `;
+    section.appendChild(divider);
+
+    // Full mode card
+    section.appendChild(renderCard(code, persona, 'full'));
+
+    container.appendChild(section);
+});
+</script>
+</body>
+</html>

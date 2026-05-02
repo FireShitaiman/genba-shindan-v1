@@ -150,12 +150,6 @@
                         <div id="details-section" class="space-y-3"></div>
                     </div>
 
-                    <!-- Advice -->
-                    <div class="mb-8">
-                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">推奨される脱出先</p>
-                        <p id="result-advice" class="text-slate-200 font-bold leading-relaxed p-4 bg-blue-600/10 border-l-4 border-blue-500 rounded-r-xl"></p>
-                    </div>
-
                     <!-- Compatibility -->
                     <div id="section-compat" class="mb-8 hidden">
                         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">相性診断</p>
@@ -166,6 +160,13 @@
                     <div id="section-quotes" class="mb-8 hidden">
                         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">現場でこう言われてる</p>
                         <div id="quotes-section" class="space-y-2"></div>
+                    </div>
+
+                    <!-- 動線ラベル① -->
+                    <div class="flex items-center gap-3 my-10">
+                        <div class="h-px flex-1 bg-slate-700"></div>
+                        <span class="text-xs text-slate-400 font-bold tracking-widest whitespace-nowrap">本当はこう思っていませんか</span>
+                        <div class="h-px flex-1 bg-slate-700"></div>
                     </div>
 
                     <!-- Extended Profile -->
@@ -192,10 +193,30 @@
                         </div>
                     </div>
 
+                    <!-- 動線ラベル② -->
+                    <div class="flex items-center gap-3 my-10">
+                        <div class="h-px flex-1 bg-red-900/40"></div>
+                        <span class="text-xs text-red-400 font-bold tracking-widest whitespace-nowrap">でも周りからはこう見えています</span>
+                        <div class="h-px flex-1 bg-red-900/40"></div>
+                    </div>
+
                     <!-- Pain Points -->
-                    <div id="section-pain" class="mb-8">
-                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">あなたが損してる、3つの理由</p>
+                    <div id="section-pain" class="mb-8 bg-red-950/20 border border-red-900/30 rounded-2xl p-5">
+                        <p class="text-xs text-red-400/80 font-bold uppercase tracking-widest mb-4">あなたが損してる、3つの理由</p>
                         <div id="pain-section" class="space-y-3"></div>
+                    </div>
+
+                    <!-- 動線ラベル③ -->
+                    <div class="flex items-center gap-3 my-10">
+                        <div class="h-px flex-1 bg-emerald-900/40"></div>
+                        <span class="text-xs text-emerald-400 font-bold tracking-widest whitespace-nowrap">だから、環境を変えてみませんか</span>
+                        <div class="h-px flex-1 bg-emerald-900/40"></div>
+                    </div>
+
+                    <!-- Advice (moved here) -->
+                    <div class="mb-8">
+                        <p class="text-xs text-emerald-500/80 font-bold uppercase tracking-widest mb-3">推奨される次のステージ</p>
+                        <p id="result-advice" class="text-slate-200 font-bold leading-relaxed p-4 bg-emerald-600/10 border-l-4 border-emerald-500 rounded-r-xl"></p>
                     </div>
 
                     <!-- Affiliate -->

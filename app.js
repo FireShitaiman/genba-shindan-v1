@@ -436,8 +436,8 @@
             },
             {
                 title: '現場での立ち位置',
-                borderCls: 'border-blue-500/30 bg-blue-500/5',
-                titleCls: 'text-blue-400',
+                borderCls: 'border-slate-600/40 bg-slate-700/10',
+                titleCls: 'text-slate-400',
                 rows: [
                     { label: '役割', text: d.position.role },
                     { label: '他者の目', text: d.position.view },
