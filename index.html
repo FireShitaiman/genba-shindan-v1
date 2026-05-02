@@ -11,6 +11,14 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="現場診断">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0Q7Z775P0G"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-0Q7Z775P0G');
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -191,7 +199,7 @@
             <div class="text-slate-400 space-y-4 text-sm leading-relaxed">
                 <p>1. 本診断（以下「当サービス」）は、個人の特性を現場あるあるに基づき<strong>独自のアルゴリズムで分類したジョーク・エンターテインメントコンテンツ</strong>であり、科学的・心理学的な正確性を保証するものではありません。MBTI®および他の心理検査とは一切関係がなく、それらとの類似性は意図するものではありません。</p>
                 <p>2. 当サービスの診断結果によって生じた如何なる損害（転職、退職、人間関係のトラブル等）についても、運営者は一切の責任を負いません。最終的なキャリアの判断は自己責任で行ってください。</p>
-                <p>3. 本サイトに含まれる求人情報はダミーであり、実際の募集内容とは異なります。リンク先でのトラブルについても責任を負いかねます。</p>
+                <p>3. 本サイトに掲載している求人・転職サービス情報は提携する転職サービスの情報に基づきます。掲載内容の正確性については各サービスの公式サイトをご確認ください。リンク先でのトラブルについても運営者は責任を負いかねます。</p>
                 <p>4. 𝕏シェア機能において投稿される内容は、ユーザー本人の意思によるものとみなします。</p>
                 <p>5. 本サービスはブラウザの localStorage 等に個人を特定できる情報を保存しません。</p>
             </div>
@@ -203,7 +211,8 @@
     <footer class="p-10 text-center text-slate-600 text-xs">
         <div class="flex justify-center gap-6 mb-4">
             <button id="link-disclaimer" class="hover:text-slate-400 underline bg-transparent border-0 cursor-pointer">免責事項</button>
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdApMAXN1aohEtIOul2K-TyheQraieFhDSWxEC-xMhKDcQ6cg/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" class="hover:text-slate-400 underline">お問い合わせ(Googleフォーム)</a>
+            <a href="/privacy.html" class="hover:text-slate-400 underline">プライバシーポリシー</a>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdApMAXN1aohEtIOul2K-TyheQraieFhDSWxEC-xMhKDcQ6cg/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" class="hover:text-slate-400 underline">お問い合わせ</a>
         </div>
         <p>© 2026 仕事にやりがいはあるか. 本サービスは独自アルゴリズムによる診断コンテンツです。MBTI®は Myers-Briggs Type Indicator の登録商標であり、本サービスとは無関係です。</p>
         <p class="mt-2">
