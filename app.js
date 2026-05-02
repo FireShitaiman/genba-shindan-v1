@@ -39,6 +39,17 @@
             resultNickname:      'result-nickname',
             resultAdvice:        'result-advice',
             affiliateContainer:  'affiliate-container',
+            painSection:         'pain-section',
+            extendedIntro:       'extended-intro',
+            extendedIntroWrap:   'extended-intro-wrap',
+            extendedRelations:   'extended-relations',
+            extendedRelationsWrap: 'extended-relations-wrap',
+            extendedDesire:      'extended-desire',
+            extendedDesireWrap:  'extended-desire-wrap',
+            extendedSecret:      'extended-secret',
+            extendedSecretWrap:  'extended-secret-wrap',
+            extendedRealreason:  'extended-realreason',
+            extendedRealreasonWrap: 'extended-realreason-wrap',
             shareX:              'share-x',
             shareLine:           'share-line',
             quizMeta:            'quiz-meta',
@@ -200,6 +211,8 @@
             updateQuotesUI(persona);
         }
 
+        updateExtendedUI(persona);
+        updatePainUI(persona);
         updateAffiliateUI(persona);
         setupShareButtons(persona, typeCode);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -290,6 +303,54 @@
     function updateAffiliateUI(persona) {
         El.affiliateContainer.textContent = '';
         AFFILIATE_CONFIG.forEach(cfg => El.affiliateContainer.appendChild(buildAffiliateCard(cfg, persona)));
+    }
+
+    // ========================
+    // Extended Profile
+    // ========================
+    function updateExtendedUI(persona) {
+        const ext = persona.extended;
+        if (!ext) return;
+        const fields = [
+            { key: 'intro',      textEl: El.extendedIntro,      wrapEl: El.extendedIntroWrap },
+            { key: 'relations',  textEl: El.extendedRelations,  wrapEl: El.extendedRelationsWrap },
+            { key: 'desire',     textEl: El.extendedDesire,     wrapEl: El.extendedDesireWrap },
+            { key: 'secret',     textEl: El.extendedSecret,     wrapEl: El.extendedSecretWrap },
+            { key: 'realReason', textEl: El.extendedRealreason, wrapEl: El.extendedRealreasonWrap },
+        ];
+        fields.forEach(({ key, textEl, wrapEl }) => {
+            if (ext[key]) {
+                textEl.textContent = ext[key];
+                wrapEl.classList.remove('hidden');
+            } else {
+                wrapEl.classList.add('hidden');
+            }
+        });
+    }
+
+    // ========================
+    // Pain Points
+    // ========================
+    const PAIN_LABELS = [
+        { key: 'loss', icon: '💴', label: 'なぜ給料が上がらないのか' },
+        { key: 'boss', icon: '👁', label: '上司の本音' },
+        { key: 'future', icon: '⏳', label: 'このまま5年後' },
+    ];
+
+    function updatePainUI(persona) {
+        El.painSection.textContent = '';
+        if (!persona.details?.pain) return;
+        PAIN_LABELS.forEach(({ key, icon, label }) => {
+            const text = persona.details.pain[key];
+            if (!text) return;
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800/60 border border-red-900/30 rounded-2xl p-5';
+            div.innerHTML = `
+                <p class="text-xs text-red-400 font-bold uppercase tracking-widest mb-2">${icon} ${label}</p>
+                <p class="text-slate-300 text-sm leading-relaxed">${text}</p>
+            `;
+            El.painSection.appendChild(div);
+        });
     }
 
     // ========================
