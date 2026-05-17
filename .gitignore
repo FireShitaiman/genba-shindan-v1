@@ -1,3 +1,23 @@
-debug_all_types.html
-*.md
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# === エディタ ===
+.vscode/
+.idea/
+*.suo
+*.swp
+*~
+
+# === Claude Code ===
 .claude/
+.claudeignore
+
+# === 開発・デバッグ専用ファイル ===
+debug_*.html
+
+# === プライベートドキュメント ===
+*.md
+!README.md
